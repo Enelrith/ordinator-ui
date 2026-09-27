@@ -1,4 +1,5 @@
 @import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/playfair-display/wght.css';
 @import 'tailwindcss';
 
 @theme inline {
@@ -6,11 +7,21 @@
   --color-surface: var(--color-gray-100);
   --color-foreground: var(--color-gray-900);
   --color-primary: var(--color-emerald-500);
+  --color-primary-foreground: var(--color-gray-100);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-header: 'Playfair Display Variable', ui-sans-serif, sans-serif;
 }
 
 @layer base {
   body {
     @apply bg-canvas text-foreground font-sans;
+  }
+
+  a {
+    @apply hover:cursor-pointer;
+  }
+
+  button {
+    @apply hover:cursor-pointer disabled:cursor-not-allowed;
   }
 }
