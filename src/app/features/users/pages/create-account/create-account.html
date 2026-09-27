@@ -1,0 +1,80 @@
+<div class="mx-auto mt-30 w-70 bg-surface p-5 rounded-md shadow">
+  <div class="w-fit mx-auto">
+    <app-logo />
+  </div>
+  <h3 class="mt-5 uppercase text-xs text-foreground-muted text-center">Create your account</h3>
+  <div class="min-h-3 mt-3">
+    @if (httpErrorMessage() !== '') {
+      <p class="text-sm text-error">
+        {{ httpErrorMessage() }}
+      </p>
+    }
+  </div>
+
+  <form class="mt-2 grid gap-y-3" [formRoot]="createAccountForm">
+    <div class="min-h-15">
+      <label for="email" class="text-xs uppercase">Email</label>
+      <input id="email" type="email" [formField]="createAccountForm.email" />
+      @if (createAccountForm.email().touched() && createAccountForm.email().invalid()) {
+        @for (error of createAccountForm.email().errors(); track $index) {
+          <p class="text-sm text-error">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <div class="min-h-15">
+      <label for="raw-password" class="text-xs uppercase">Password</label>
+      <input id="raw-password" type="password" [formField]="createAccountForm.rawPassword" />
+      @if (createAccountForm.rawPassword().touched() && createAccountForm.rawPassword().invalid()) {
+        @for (error of createAccountForm.rawPassword().errors(); track $index) {
+          <p class="text-sm text-error">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <div class="min-h-15">
+      <label for="confirm-password" class="text-xs uppercase">Confirm Password</label>
+      <input
+        id="confirm-password"
+        type="password"
+        #confirmPassword
+        (input)="onChangeConfirmPassword(confirmPassword.value)"
+      />
+      @if (confirmPasswordError() !== '') {
+        <p class="text-sm text-error">{{ confirmPasswordError() }}</p>
+      }
+    </div>
+    <div class="min-h-15">
+      <label for="first-name" class="text-xs uppercase">First Name</label>
+      <input id="first-name" type="text" [formField]="createAccountForm.firstName" />
+      @if (createAccountForm.firstName().touched() && createAccountForm.firstName().invalid()) {
+        @for (error of createAccountForm.firstName().errors(); track $index) {
+          <p class="text-sm text-error">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <div class="min-h-15">
+      <label for="last-name" class="text-xs uppercase">Last Name</label>
+      <input id="last-name" type="text" [formField]="createAccountForm.lastName" />
+      @if (createAccountForm.lastName().touched() && createAccountForm.lastName().invalid()) {
+        @for (error of createAccountForm.lastName().errors(); track $index) {
+          <p class="text-sm text-error">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <button
+      class="bg-primary text-primary-foreground px-2 py-1 w-38 h-9 mx-auto rounded-md text-lg shadow hover:bg-primary-muted"
+      [disabled]="createAccountForm().submitting()"
+    >
+      @if (createAccountForm().submitting()) {
+        <app-spinner size="size-5" />
+      } @else {
+        Create Account
+      }
+    </button>
+  </form>
+  <p class="text-sm mt-3">
+    Already have an account?
+    <a class="text-primary underline font-semibold hover:text-primary-muted" routerLink="/login"
+      >Login</a
+    >
+  </p>
+</div>

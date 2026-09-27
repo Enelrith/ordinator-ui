@@ -1,10 +1,35 @@
 <nav class="flex justify-between bg-surface h-15 items-center px-5 shadow">
   <div>
-    <a
-      class="text-3xl bg-primary px-2 py-1 rounded-md text-primary-foreground font-header font-bold tracking-tight"
-      routerLink=""
-      >Ordinator</a
-    >
+    <a routerLink=""><app-logo /></a>
   </div>
-  <div><a class="text-lg bg-primary px-2 py-1.5 rounded-md text-primary-foreground">Login</a></div>
+  <div>
+    @if (currentUser(); as u) {
+      <button
+        class="flex items-center gap-x-2 bg-primary px-2 py-1 text-primary-foreground rounded-md hover:bg-primary-muted transition-all"
+        (click)="onClickUserDropdown()"
+      >
+        {{ `${u.firstName} ${u.lastName}` }}
+        <div class="transition-all" [class]="showUserDropdown() ? 'rotate-180' : ''">
+          <svg lucideChevronDown size="20"></svg>
+        </div>
+      </button>
+      <div
+        class="absolute mt-5 bg-surface rounded-md border border-gray-400 shadow w-40 px-2 py-1 transition-all"
+        [class]="!showUserDropdown() ? 'opacity-0 pointer-events-none' : ''"
+      >
+        <button
+          class="flex items-center gap-x-2 hover:bg-primary hover:text-primary-foreground w-full rounded-md px-2 py-1"
+          (click)="onClickLogout()"
+        >
+          <svg lucideLogOut size="20" color="red"></svg> Logout
+        </button>
+      </div>
+    } @else {
+      <a
+        class="text-lg bg-primary px-2 py-1.5 rounded-md text-primary-foreground"
+        routerLink="/login"
+        >Login</a
+      >
+    }
+  </div>
 </nav>

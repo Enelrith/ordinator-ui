@@ -1,0 +1,51 @@
+<div class="mx-auto mt-30 w-70 bg-surface p-5 rounded-md shadow">
+  <div class="w-fit mx-auto">
+    <app-logo />
+  </div>
+  <h3 class="mt-5 uppercase text-xs text-foreground-muted text-center">Connect to your account</h3>
+  <div class="min-h-3 mt-3">
+    @if (httpErrorMessage() !== '') {
+      <p class="text-sm text-error">
+        {{ httpErrorMessage() }}
+      </p>
+    }
+  </div>
+  <form class="mt-2 grid gap-y-3" [formRoot]="loginForm">
+    <div class="min-h-15">
+      <label for="email" class="text-xs uppercase">Email</label>
+      <input id="email" type="email" [formField]="loginForm.email" />
+      @if (loginForm.email().touched() && loginForm.email().invalid()) {
+        @for (error of loginForm.email().errors(); track $index) {
+          <p class="text-sm text-error">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <div class="min-h-15">
+      <label for="raw-password" class="text-xs uppercase">Password</label>
+      <input id="raw-password" type="password" [formField]="loginForm.password" />
+      @if (loginForm.password().touched() && loginForm.password().invalid()) {
+        @for (error of loginForm.password().errors(); track $index) {
+          <p class="text-sm text-error">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <button
+      class="bg-primary text-primary-foreground px-2 py-1 w-38 h-9 mx-auto rounded-md text-lg shadow hover:bg-primary-muted"
+      [disabled]="loginForm().submitting()"
+    >
+      @if (loginForm().submitting()) {
+        <app-spinner size="size-5" />
+      } @else {
+        Login
+      }
+    </button>
+    <p class="text-sm mt-3">
+      Don't have an account?
+      <a
+        class="text-primary underline font-semibold hover:text-primary-muted"
+        routerLink="/create-account"
+        >Create One</a
+      >
+    </p>
+  </form>
+</div>
