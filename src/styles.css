@@ -1,3 +1,16 @@
-/* You can add global styles to this file, and also import other style files */
-
+@import '@fontsource-variable/inter/wght.css';
 @import 'tailwindcss';
+
+@theme inline {
+  --color-canvas: var(--color-gray-200);
+  --color-surface: var(--color-gray-100);
+  --color-foreground: var(--color-gray-900);
+  --color-primary: var(--color-emerald-500);
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-foreground font-sans;
+  }
+}
