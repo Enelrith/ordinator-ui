@@ -27,10 +27,18 @@
   }
 
   button {
-    @apply hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-disabled disabled:text-foreground-disabled;
+    @apply hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-disabled disabled:text-foreground-disabled transition-all;
+  }
+
+  select {
+    @apply hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-disabled disabled:text-foreground-disabled transition-all;
   }
 
   input {
+    @apply bg-gray-50 border-2 border-gray-400 rounded-sm shadow px-0.5 focus:outline-none focus:border-primary;
+  }
+
+  textarea {
     @apply bg-gray-50 border-2 border-gray-400 rounded-sm shadow px-0.5 focus:outline-none focus:border-primary;
   }
 }

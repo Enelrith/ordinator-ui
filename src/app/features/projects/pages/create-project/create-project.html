@@ -1,0 +1,57 @@
+<div class="w-70 mx-auto mt-20">
+  <h2
+    class="text-3xl font-header bg-primary text-primary-foreground rounded-md rounded-b-none px-2 py-1"
+  >
+    Create New Project
+  </h2>
+  <form
+    class="bg-surface border border-primary/40 rounded-md rounded-t-none p-2 grid gap-y-7"
+    [formRoot]="createProjectForm"
+  >
+    @if (httpError() !== '') {
+      <p class="text-sm text-red-500">{{ httpError() }}</p>
+    }
+    <div class="flex flex-col justify-center">
+      <label for="name" class="text-xs uppercase text-foreground-muted font-semibold"
+        >Project Name <span class="text-red-500">*</span></label
+      >
+      <input
+        id="name"
+        type="text"
+        [formField]="createProjectForm.name"
+        placeholder="Enter project name"
+      />
+      @if (createProjectForm.name().invalid() && createProjectForm.name().touched()) {
+        @for (error of createProjectForm.name().errors(); track $index) {
+          <p class="text-sm text-red-500">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <div class="flex flex-col">
+      <label for="description" class="text-xs uppercase text-foreground-muted font-semibold"
+        >Project Description</label
+      >
+      <textarea
+        id="description"
+        class="h-30 resize-none overflow-scroll"
+        [formField]="createProjectForm.description"
+        placeholder="Enter project description"
+      ></textarea>
+      @if (createProjectForm.description().invalid() && createProjectForm.description().touched()) {
+        @for (error of createProjectForm.description().errors(); track $index) {
+          <p class="text-sm text-red-500">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <button
+      class="bg-primary text-primary-foreground px-2 py-1 rounded-md hover:bg-primary-muted h-9"
+      [disabled]="createProjectForm().submitting()"
+    >
+      @if (createProjectForm().submitting()) {
+        <app-spinner size="size-5" />
+      } @else {
+        Create
+      }
+    </button>
+  </form>
+</div>

@@ -1,0 +1,72 @@
+<div class="w-70 mx-auto mt-20">
+  <h2
+    class="text-3xl font-header bg-primary text-primary-foreground rounded-md rounded-b-none px-2 py-1"
+  >
+    Create New Task
+  </h2>
+  <form
+    class="bg-surface border border-primary/40 rounded-md rounded-t-none p-2 grid gap-y-7"
+    [formRoot]="createTaskForm"
+  >
+    @if (httpError() !== '') {
+      <p class="text-sm text-red-500">{{ httpError() }}</p>
+    }
+    <div class="flex flex-col justify-center">
+      <label for="name" class="text-xs uppercase text-foreground-muted font-semibold"
+        >Task Name <span class="text-red-500">*</span></label
+      >
+      <input
+        id="name"
+        type="text"
+        [formField]="createTaskForm.name"
+        placeholder="Enter task name"
+      />
+      @if (createTaskForm.name().invalid() && createTaskForm.name().touched()) {
+        @for (error of createTaskForm.name().errors(); track $index) {
+          <p class="text-sm text-red-500">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <div class="flex flex-col">
+      <label for="description" class="text-xs uppercase text-foreground-muted font-semibold"
+        >Task Description</label
+      >
+      <textarea
+        id="description"
+        class="h-30 resize-none overflow-scroll"
+        [formField]="createTaskForm.description"
+        placeholder="Enter task description"
+      ></textarea>
+      @if (createTaskForm.description().invalid() && createTaskForm.description().touched()) {
+        @for (error of createTaskForm.description().errors(); track $index) {
+          <p class="text-sm text-red-500">{{ error.message }}</p>
+        }
+      }
+    </div>
+    <div class="flex flex-col">
+      <label for="importance" class="text-xs uppercase text-foreground-muted font-semibold"
+        >Task Importance</label
+      >
+      <select
+        id="importance"
+        class="mt-2 bg-gray-200 border border-gray-400/60 text-foreground px-2 py-1 rounded-md font-semibold"
+        [formField]="createTaskForm.importance"
+      >
+        <option value="CRITICAL">Critical</option>
+        <option value="HIGH">High</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="LOW">Low</option>
+      </select>
+    </div>
+    <button
+      class="bg-primary text-primary-foreground px-2 py-1 rounded-md hover:bg-primary-muted h-9"
+      [disabled]="createTaskForm().submitting()"
+    >
+      @if (createTaskForm().submitting()) {
+        <app-spinner size="size-5" />
+      } @else {
+        Create
+      }
+    </button>
+  </form>
+</div>

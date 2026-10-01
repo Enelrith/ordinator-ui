@@ -1,0 +1,170 @@
+<div class="w-200 mx-auto mt-20">
+  @if (project(); as p) {
+    <div class="grid gap-y-5">
+      <h2 class="text-3xl bg-primary text-primary-foreground p-2 rounded-sm">
+        {{ p.name }}
+      </h2>
+      <p
+        class="h-30 max-h-30 wrap-anywhere overflow-scroll"
+        [class]="p.description === null ? 'italic text-foreground-muted' : ''"
+      >
+        {{ p.description || 'No Description' }}
+      </p>
+    </div>
+    <div class="flex items-center bg-primary px-2 py-2 justify-between rounded-sm">
+      <h3 class="text-xl text-primary-foreground">Tasks</h3>
+      @if (currentUserRole() === 'ADMIN' || currentUserRole() === 'MANAGER') {
+        <a
+          class="bg-surface text-primary font-semibold px-2 py-1 rounded-md hover:bg-gray-200 transition-all"
+          routerLink="tasks/create"
+          >+ Create Task</a
+        >
+      }
+    </div>
+
+    @if (taskInfoList(); as til) {
+      <table class="mt-5 border w-full border-primary/40 max-h-100 overflow-scroll">
+        <thead>
+          <tr class="*:font-normal bg-primary text-primary-foreground">
+            <th>Name</th>
+            <th>Status</th>
+            <th>Importance</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ti of til; track ti.id) {
+            <tr class="*:pl-2 *:py-2 *:border-b *:border-b-primary/40 text-center">
+              <td class="truncate max-w-50">
+                <a
+                  class="text-primary underline hover:text-primary-muted"
+                  [routerLink]="['tasks', ti.id]"
+                  >{{ ti.name }}</a
+                >
+              </td>
+              <td class="font-semibold" [class]="setTaskStatusAppearence(ti.status).style">
+                {{ setTaskStatusAppearence(ti.status).label }}
+              </td>
+              <td class="font-semibold" [class]="setTaskImportanceAppearence(ti.importance).style">
+                {{ setTaskImportanceAppearence(ti.importance).label }}
+              </td>
+              <td>{{ ti.updatedAt | date: 'shortDate' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4">
+                <p class="text-center py-3 italic text-foreground-muted">
+                  No tasks found for this project
+                </p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    <div class="flex items-center bg-primary px-2 py-2 justify-between rounded-sm mt-5">
+      <h3 class="text-xl text-primary-foreground">Members</h3>
+      @if (currentUserRole() === 'ADMIN' || currentUserRole() === 'MANAGER') {
+        <div class="relative">
+          <button
+            class="bg-surface text-primary font-semibold px-2 py-1 rounded-md hover:bg-gray-200 transition-all"
+            (click)="onClickAddMember()"
+          >
+            + Add Member
+          </button>
+          <form
+            class="absolute left-40 -bottom-2 w-60 h-60 bg-surface border border-primary/40 rounded-sm shadow-sm shadow-gray-400 transition-all"
+            [class]="!showAddMembersCard() ? 'opacity-0 pointer-events-none' : ''"
+            [formRoot]="addProjectMemberForm"
+          >
+            <h3 class="text-lg font-semibold bg-primary text-primary-foreground text-center">
+              Invite Member
+            </h3>
+            @if (inviteHttpError() !== '') {
+              <p class="text-sm text-red-500 pt-2 px-2 max-h-2">{{ inviteHttpError() }}</p>
+            }
+            @if (addProjectMemberForm.role().invalid() && addProjectMemberForm.role().touched()) {
+              @for (error of addProjectMemberForm.role().errors(); track $index) {
+                <p class="text-sm-text-red-500">{{ error.message }}</p>
+              }
+            }
+            <div class="flex flex-col p-2 mt-5">
+              <label for="invitee-email">Invitee Email</label>
+              <input
+                id="invitee-email"
+                type="email"
+                #inviteeEmailInput
+                [value]="inviteeEmail()"
+                (input)="inviteeEmail.set(inviteeEmailInput.value)"
+              />
+            </div>
+            <div class="flex flex-col p-2">
+              <label for="invitee-role">Invitee Role</label>
+              <select
+                id="invitee-role"
+                class="bg-surface border border-gray-400/50 rounded-md p-1"
+                [formField]="addProjectMemberForm.role"
+              >
+                @for (validInviteeRole of getValidInviteeRoles(); track $index) {
+                  <option [value]="validInviteeRole.value">{{ validInviteeRole.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="flex gap-x-5 justify-center">
+              <button
+                type="button"
+                class="bg-red-500 text-primary-foreground px-2 py-1 rounded-md"
+                (click)="onClickCancelAddMember()"
+                [disabled]="addProjectMemberForm().submitting()"
+              >
+                Cancel
+              </button>
+              <button
+                class="bg-primary text-primary-foreground px-2 py-1 rounded-md h-9 max-h-9 w-15 min-w-15"
+                [disabled]="addProjectMemberForm().submitting()"
+              >
+                @if (loadingInvite()) {
+                  <app-spinner size="size-4" />
+                } @else {
+                  Invite
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+    </div>
+    @if (project()?.projectMembers; as pml) {
+      <table class="mt-5 border w-full border-primary/40 max-h-100 overflow-scroll">
+        <thead>
+          <tr class="*:font-normal bg-primary text-primary-foreground">
+            <th>Full Name</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pm of pml; track pm.id) {
+            <tr class="*:pl-2 *:py-2 *:border-b *:border-b-primary/40 text-center">
+              <td class="truncate max-w-50">
+                <p class="text-primary underline hover:text-primary-muted">
+                  {{ `${pm.user.firstName} ${pm.user.lastName}` }}
+                </p>
+              </td>
+              <td class="font-semibold">
+                {{ pm.role }}
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4">
+                <p class="text-center py-3 italic text-foreground-muted">
+                  No members found for this project
+                </p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</div>

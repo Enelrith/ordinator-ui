@@ -1,0 +1,60 @@
+<div class="w-196 mx-auto mt-30">
+  <div class="bg-primary text-primary-foreground p-2 rounded-sm flex items-center justify-between">
+    <h2 class="text-4xl font-header font-semibold">Projects</h2>
+    <a
+      class="bg-surface text-primary rounded-md px-2 py-1 font-semibold hover:bg-gray-200"
+      routerLink="create"
+    >
+      + New Project
+    </a>
+  </div>
+
+  <table class="bg-surface mt-5 shadow-xs shadow-gray-500 border-x border-primary/40">
+    <thead>
+      <tr class="*:px-24 *:py-2 *:font-normal bg-primary text-primary-foreground">
+        <th>Name</th>
+        <th>Status</th>
+        <th class="flex gap-x-1.5">Ongoing <span>Tasks</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading()) {
+        <tr>
+          <td class="text-center py-2" colspan="3">
+            <app-spinner size="size-15" color="border-primary" borderSize="border-4" />
+          </td>
+        </tr>
+      } @else if (!loading() && httpError() !== '') {
+        <tr>
+          <td class="text-center py-2 text-red-500" colspan="3">
+            {{ httpError() }}
+          </td>
+        </tr>
+      } @else {
+        @for (projectInfo of projectInfoList(); track $index) {
+          <tr class="text-center border-b border-b-primary/40 *:py-1">
+            <td>
+              <a
+                class="text-primary underline hover:text-primary-muted"
+                [routerLink]="[projectInfo.id]"
+                >{{ projectInfo.name }}</a
+              >
+            </td>
+            <td
+              class="font-semibold"
+              [class]="projectInfo.status === 'ONGOING' ? 'text-blue-500' : 'text-primary'"
+            >
+              {{ projectInfo.status === 'ONGOING' ? 'Ongoing' : 'Completed' }}
+            </td>
+            <td
+              class="font-semibold"
+              [class]="setOngoingTaskCountAppearence(projectInfo.ongoingTaskCount)"
+            >
+              {{ projectInfo.ongoingTaskCount }}
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

@@ -19,4 +19,8 @@ export const routes: Routes = [
     component: Login,
     title: 'Ordinator | Login',
   },
+  {
+    path: 'projects',
+    loadChildren: () => import('./features/projects/projects.routes').then((m) => m.routes),
+  },
 ];

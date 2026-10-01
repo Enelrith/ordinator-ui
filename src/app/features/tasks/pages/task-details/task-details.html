@@ -1,0 +1,131 @@
+<div class="w-200 mx-auto mt-20">
+  @if (task(); as t) {
+    <div class="grid">
+      <div class="flex gap-x-10 items-center">
+        <h2 class="text-2xl font-semibold">{{ t.name }}</h2>
+        <div class="flex gap-x-5 items-center">
+          <p class="font-semibold" [class]="setTaskStatusAppearence(t.status).style">
+            {{ setTaskStatusAppearence(t.status).label }}
+          </p>
+          <p class="font-semibold" [class]="setTaskImportanceAppearence(t.importance).style">
+            {{ setTaskImportanceAppearence(t.importance).label }}
+          </p>
+          <p class="font-light">
+            {{ `${t.taskOwner.user.firstName} ${t.taskOwner.user.lastName}` }}
+          </p>
+        </div>
+      </div>
+      @if (isReadOnly()) {
+        <p class="text-sm bg-amber-600 text-primary-foreground w-fit rounded-md px-2 py-1 mt-1">
+          Currently viewing in Read-only mode because this task has not been assigned to you.
+        </p>
+      }
+      <p class="mt-5">{{ t.description }}</p>
+      <p class="text-xs font-light uppercase mt-5">
+        Last Updated: {{ t.updatedAt | date: 'shortDate' }}
+      </p>
+      <div class="flex items-center bg-primary px-2 py-2 justify-between rounded-sm mt-5">
+        <h3 class="text-xl text-primary-foreground">Task Members</h3>
+        @if (this.authService.currentUser()?.id === this.task()?.taskOwner.user.id) {
+          <div class="relative">
+            <button
+              class="bg-surface text-primary font-semibold px-2 py-1 rounded-md hover:bg-gray-200 transition-all"
+              (click)="onClickAssignMembersButton()"
+            >
+              + Assign Member
+            </button>
+            <div
+              class="absolute left-42 -bottom-2 w-60 h-40 bg-surface border border-primary/40 rounded-sm shadow-sm shadow-gray-400 transition-all"
+              [class]="!showAssignMemberCard() ? 'opacity-0 pointer-events-none' : ''"
+            >
+              <h3 class="text-lg font-semibold bg-primary text-primary-foreground text-center">
+                Assign Member
+              </h3>
+              @if (assignMemberHttpError() !== '') {
+                <p class="text-sm text-red-500">{{ assignMemberHttpError() }}</p>
+              }
+              <div class="flex flex-col p-2 mt-2">
+                <label for="project-members">Project Members</label>
+                <select
+                  id="project-members"
+                  class="bg-surface border border-gray-400/50 rounded-md p-1"
+                  [disabled]="loadingMembers() || projectMembers().length === 0"
+                  #selectedMemberInput
+                  [value]="
+                    !loadingMembers() && projectMembers().length === 0
+                      ? 'No Members Found'
+                      : selectedMemberId()
+                  "
+                  (input)="selectedMemberId.set(selectedMemberInput.value)"
+                >
+                  @for (projectMember of projectMembers(); track projectMember.id) {
+                    <option [value]="projectMember.id">
+                      {{ `${projectMember.user.firstName} ${projectMember.user.lastName}` }}
+                    </option>
+                  } @empty {
+                    <option disabled>No Members Found</option>
+                  }
+                </select>
+              </div>
+              <div class="flex gap-x-5 justify-center">
+                <button
+                  type="button"
+                  class="bg-red-500 text-primary-foreground px-2 py-1 rounded-md"
+                  (click)="onClickCancelAssignMember()"
+                  [disabled]="loadingAssign()"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="bg-primary text-primary-foreground px-2 py-1 rounded-md h-9 max-h-9 w-15 min-w-15"
+                  [disabled]="loadingAssign() || projectMembers().length === 0"
+                  (click)="onClickAssign()"
+                >
+                  @if (loadingAssign()) {
+                    <app-spinner size="size-4" />
+                  } @else {
+                    Invite
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+      <table class="mt-5 border w-full border-primary/40 max-h-100 overflow-scroll">
+        <thead>
+          <tr class="*:font-normal bg-primary text-primary-foreground">
+            <th>Full Name</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tm of task()?.taskMembers; track tm.id) {
+            <tr class="*:pl-2 *:py-2 *:border-b *:border-b-primary/40 text-center">
+              <td class="truncate max-w-50">
+                <p class="text-primary underline hover:text-primary-muted">
+                  {{ `${tm.user.firstName} ${tm.user.lastName}` }}
+                </p>
+              </td>
+              <td class="font-semibold">
+                {{ tm.role }}
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4">
+                <p class="text-center py-3 italic text-foreground-muted">
+                  No members found for this task
+                </p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (loading()) {
+    <app-spinner class="mx-auto" />
+  } @else {
+    <p class="text-red-500 text-xl text-center">Could not load tasks</p>
+  }
+</div>
