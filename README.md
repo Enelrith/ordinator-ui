@@ -2,7 +2,7 @@
 
 The Angular client for Ordinator, a project and task management application. It provides account registration and login, project browsing and creation, project membership management, task creation and details, and task member assignment.
 
-The Spring Boot API lives in the separate `ordinator` project. See its [README](../ordinator/README.md) for backend and database setup.
+The Spring Boot API lives in the separate `ordinator` project. See its [README](https://github.com/Enelrith/ordinator) for backend and database setup.
 
 ## Stack
 
