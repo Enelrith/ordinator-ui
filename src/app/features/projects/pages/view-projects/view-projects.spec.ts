@@ -1,5 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ViewProjects } from './view-projects';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 
 describe('ViewProjects', () => {
   let component: ViewProjects;
@@ -8,6 +11,7 @@ describe('ViewProjects', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ViewProjects],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ViewProjects);
