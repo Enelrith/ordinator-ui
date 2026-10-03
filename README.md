@@ -1,6 +1,6 @@
 # Ordinator Frontend
 
-The Angular client for Ordinator, a project and task management application. It provides account registration and login, project browsing and creation, project membership management, task creation and details, and task member assignment.
+The Angular client for Ordinator, a project and task management application. It provides account registration and login, project browsing and creation, project membership management, task creation and details, task member assignment, and paginated task comments with optional file attachments.
 
 The Spring Boot API lives in the separate `ordinator` project. See its [README](https://github.com/Enelrith/ordinator) for backend and database setup.
 
@@ -18,13 +18,13 @@ The Spring Boot API lives in the separate `ordinator` project. See its [README](
 
 - Node.js compatible with the installed Angular CLI: `^22.22.3 || ^24.15.0 || >=26.0.0`
 - pnpm 11.24.0, as declared in `package.json`
-- A running Ordinator backend for account, project, and task operations
+- A running Ordinator backend for account, project, task, and comment operations, with its LocalStack attachment bucket configured for uploads and downloads
 
 Run the commands below from this repository's root.
 
 ## Local setup
 
-1. Start PostgreSQL and the backend using the instructions in the backend README. The API should listen on `http://localhost:8080`.
+1. Start PostgreSQL, LocalStack, and the backend using the instructions in the backend README, including creating the attachment bucket. The API should listen on `http://localhost:8080`.
 
 2. Install dependencies using the committed lockfile:
 
@@ -52,18 +52,34 @@ The development proxy applies to `pnpm start`.
 
 ## Pages
 
-| Route                                | Page                                         |
-| ------------------------------------ | -------------------------------------------- |
-| `/`                                  | Home                                         |
-| `/create-account`                    | Account registration                         |
-| `/login`                             | Login                                        |
-| `/projects`                          | Project list                                 |
-| `/projects/create`                   | Create a project                             |
-| `/projects/:id`                      | Project details, members, and task summaries |
-| `/projects/:projectId/tasks/create`  | Create a task                                |
-| `/projects/:projectId/tasks/:taskId` | Task details and member assignment           |
+| Route                                | Page                                             |
+| ------------------------------------ | ------------------------------------------------ |
+| `/`                                  | Home                                             |
+| `/create-account`                    | Account registration                             |
+| `/login`                             | Login                                            |
+| `/projects`                          | Project list                                     |
+| `/projects/create`                   | Create a project                                 |
+| `/projects/:id`                      | Project details, members, and task summaries     |
+| `/projects/:projectId/tasks/create`  | Create a task                                    |
+| `/projects/:projectId/tasks/:taskId` | Task details, members, comments, and attachments |
 
 Project member additions use the invitee's existing account email. Task assignments select an existing member of the same project. Available operations depend on the user's project role and task ownership; the backend enforces those permissions.
+
+## Comments and attachments
+
+Comments are displayed on the task details page, with the newest first and 10 comments per page by default. The page shows each comment's author, creation time, content, and optional attachment filename. Comments whose author is no longer available display `[DELETED USER]`.
+
+- Project members can read comments on tasks in their project.
+- Members assigned to the task can post comments and download attachments. Other project members see the comments and attachment filenames without the posting form or download links.
+- Comments accept up to 300 characters of nonblank text and one optional file. The backend validates the content and filename.
+- Posting from a later page returns to the first page so the new comment is visible. Posting from the first page inserts the new comment at the top.
+- A successful post clears the comment text and file selection.
+
+Uploads use `FormData`: `commentRequest` is a JSON `Blob` with content type `application/json`, and `attachmentFile` contains the optional `File`.
+
+Attachment links point to `/api/comments/{commentId}/attachment`. The browser uses the authenticated session to download the file through the backend, which supplies the original filename with `Content-Disposition: attachment`. The frontend does not connect directly to S3 or need S3 credentials.
+
+The local backend stores attachment bytes in LocalStack. Its current configuration enables persistence, so restarting LocalStack retains existing buckets and files.
 
 ## Commands
 
@@ -77,18 +93,22 @@ Project member additions use the invitee's existing account email. Task assignme
 
 Production build artifacts are written under `dist/ordinator-ui/`, with browser files in `dist/ordinator-ui/browser/`.
 
+For deployment, configure the web server to forward `/api/**` to the backend and serve `index.html` for application routes. The Angular development proxy is not included in the production build. Keeping API requests on the frontend origin also supports session cookies, CSRF protection, and attachment links.
+
 ## Project layout
 
 ```text
 src/
   app/
-    common/ui/        Shared navbar, logo, and spinner components
+    common/
+      ui/             Shared navbar, logo, and spinner components
+      data-access/    Shared pagination model
     features/
       home/           Home page
       security/       Login and authentication API/state
       users/          Registration and user API/models
       projects/       Project pages, routes, and API/models
-      tasks/          Task pages, routes, and API/models
+      tasks/          Task pages, routes, and task/comment API/models
     app.config.ts     Router, HTTP, and application initialization
     app.routes.ts     Top-level routes
   styles.css          Global styles, Tailwind theme, and font imports
