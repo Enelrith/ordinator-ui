@@ -2,13 +2,17 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { TaskApi } from '../../data-access/task-api';
 import { ActivatedRoute } from '@angular/router';
 import { Task, TaskImportance, TaskStatus } from '../../data-access/task.model';
-import { finalize } from 'rxjs';
+import { catchError, concatMap, EMPTY, finalize, map, of, switchMap, tap } from 'rxjs';
 import { AuthApi } from '../../../security/data-access/auth-api';
 import { DatePipe } from '@angular/common';
 import { ProjectMember } from '../../../projects/data-access/project.model';
 import { ProjectApi } from '../../../projects/data-access/project-api';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Spinner } from '../../../../common/ui/spinner/spinner';
+import { CommentApi } from '../../data-access/comment-api';
+import { Page } from '../../../../common/data-access/page.model';
+import { Comment } from '../../data-access/comment.model';
+import { LucidePaperclip } from '@lucide/angular';
 
 interface TaskStatusAppearence {
   label: string;
@@ -21,7 +25,7 @@ interface TaskImportanceAppearence {
 }
 
 @Component({
-  imports: [DatePipe, Spinner],
+  imports: [DatePipe, Spinner, LucidePaperclip],
   selector: 'app-task-details',
   templateUrl: './task-details.html',
 })
@@ -29,14 +33,26 @@ export class TaskDetails implements OnInit {
   private readonly taskService = inject(TaskApi);
   private readonly projectService = inject(ProjectApi);
   private readonly authService = inject(AuthApi);
+  private readonly commentService = inject(CommentApi);
   private readonly activateRoute = inject(ActivatedRoute);
 
   projectId = this.activateRoute.snapshot.paramMap.get('projectId') || '';
   taskId = this.activateRoute.snapshot.paramMap.get('taskId') || '';
 
   readonly task = signal<Task | null>(null);
+  readonly commentsPage = signal<Page<Comment>>({
+    content: [],
+    page: {
+      number: 0,
+      size: 10,
+      totalElements: 0,
+      totalPages: 0,
+    },
+  });
   readonly loading = signal<boolean>(false);
+  readonly loadingComments = signal<boolean>(false);
   readonly httpError = signal<string>('');
+  readonly commentsHttpError = signal<string>('');
   readonly isReadOnly = signal<boolean>(true);
   readonly showAssignMemberCard = signal<boolean>(false);
   readonly loadingMembers = signal<boolean>(false);
@@ -45,15 +61,20 @@ export class TaskDetails implements OnInit {
   readonly selectedMemberId = signal<string>('');
   readonly loadingAssign = signal<boolean>(false);
   readonly assignMemberHttpError = signal<string>('');
+  readonly newCommentContent = signal<string>('');
+  readonly newCommentAttachment = signal<File | null>(null);
+  readonly loadingNewComment = signal<boolean>(false);
+  readonly newCommentHttpError = signal<string>('');
 
   ngOnInit(): void {
     this.loading.set(true);
+    this.loadingComments.set(true);
 
     this.taskService
       .getTask(this.taskId, this.projectId)
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe({
-        next: (task) => {
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        tap((task) => {
           this.task.set(task);
 
           const currentUser = this.authService.currentUser();
@@ -62,8 +83,23 @@ export class TaskDetails implements OnInit {
           );
 
           if (currentUserMembership !== undefined) this.isReadOnly.set(false);
+        }),
+        catchError(() => {
+          this.httpError.set('An unexpected error has occurred while loading the task');
+
+          return EMPTY;
+        }),
+        concatMap((task) =>
+          this.commentService
+            .getAllTaskComments(this.projectId, task.id)
+            .pipe(finalize(() => this.loadingComments.set(false))),
+        ),
+      )
+      .subscribe({
+        next: (commentsPage) => {
+          this.commentsPage.set(commentsPage);
         },
-        error: () => this.httpError.set('An unexpected error has occurred while loading the task'),
+        error: () => this.commentsHttpError.set('Error while loading comments'),
       });
   }
 
@@ -163,6 +199,79 @@ export class TaskDetails implements OnInit {
       });
   }
 
+  onClickPost(attachmentFileInput: HTMLInputElement) {
+    this.loadingNewComment.set(true);
+    this.newCommentHttpError.set('');
+
+    const content = this.newCommentContent();
+    const attachment = this.newCommentAttachment();
+    const formData = new FormData();
+
+    formData.append(
+      'commentRequest',
+      new Blob([JSON.stringify({ content })], { type: 'application/json' }),
+    );
+
+    if (attachment) {
+      formData.append('attachmentFile', attachment);
+    }
+
+    this.commentService
+      .createComment(formData, this.task()?.id || '')
+      .pipe(
+        finalize(() => this.loadingNewComment.set(false)),
+        catchError((e) => {
+          if (e instanceof HttpErrorResponse && e.status === 400) {
+            this.newCommentHttpError.set(e.error.detail);
+          } else {
+            this.newCommentHttpError.set('Error while posting comment');
+          }
+          return EMPTY;
+        }),
+        tap(() => {
+          this.newCommentHttpError.set('');
+          this.newCommentContent.set('');
+          this.newCommentAttachment.set(null);
+          attachmentFileInput.value = '';
+        }),
+        switchMap((newComment) => {
+          if (this.commentsPage().page.number !== 0) {
+            this.loadingComments.set(true);
+            this.commentsHttpError.set('');
+
+            return this.commentService.getAllTaskComments(this.projectId, this.taskId).pipe(
+              map((commentsPage) => ({ newComment, commentsPage })),
+              finalize(() => this.loadingComments.set(false)),
+            );
+          } else {
+            return of({ newComment, commentsPage: null });
+          }
+        }),
+      )
+      .subscribe({
+        next: ({ newComment, commentsPage }) => {
+          if (!commentsPage) {
+            this.commentsPage.update((current) => {
+              return {
+                ...current,
+                content: [newComment, ...current.content],
+              };
+            });
+          } else {
+            this.commentsPage.set(commentsPage);
+          }
+        },
+        error: () => this.commentsHttpError.set('Error while loading comments'),
+      });
+  }
+
+  onSelectFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.item(0) || null;
+
+    this.newCommentAttachment.set(file);
+  }
+
   memberExists(projectMember: ProjectMember) {
     const existingMember = this.task()?.taskMembers.find(
       (taskMember) => taskMember.id === projectMember.id,
@@ -173,5 +282,27 @@ export class TaskDetails implements OnInit {
     }
 
     return false;
+  }
+
+  getTotalPagesArray() {
+    const arr = [];
+
+    for (let i = 0; i < this.commentsPage().page.totalPages; i++) {
+      arr.push(i + 1);
+    }
+
+    return arr;
+  }
+
+  onClickPageNumber(pageNumber: number) {
+    this.loadingComments.set(true);
+
+    this.commentService
+      .getAllTaskComments(this.projectId, this.taskId, pageNumber - 1)
+      .pipe(finalize(() => this.loadingComments.set(false)))
+      .subscribe({
+        next: (commentsPage) => this.commentsPage.set(commentsPage),
+        error: () => this.commentsHttpError.set('Error while loading comments'),
+      });
   }
 }
