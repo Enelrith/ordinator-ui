@@ -6,6 +6,8 @@ import {
   AddProjectMemberRequest,
   Project,
   ProjectMemberRole,
+  ProjectStatus,
+  UpdateProjectStatusRequest,
 } from '../../data-access/project.model';
 import { catchError, concatMap, EMPTY, finalize, firstValueFrom, tap } from 'rxjs';
 import { TaskApi } from '../../../tasks/data-access/task-api';
@@ -15,6 +17,12 @@ import { AuthApi } from '../../../security/data-access/auth-api';
 import { HttpErrorResponse } from '@angular/common/http';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { Spinner } from '../../../../common/ui/spinner/spinner';
+import { LucideSave } from '@lucide/angular';
+
+interface ProjectStatusAppearence {
+  label: string;
+  style: string;
+}
 
 interface TaskStatusAppearence {
   label: string;
@@ -32,7 +40,7 @@ interface AddMemberRoleSelect {
 }
 
 @Component({
-  imports: [DatePipe, RouterLink, FormRoot, FormField, Spinner],
+  imports: [DatePipe, RouterLink, FormRoot, FormField, Spinner, LucideSave],
   selector: 'app-project-details',
   templateUrl: './project-details.html',
 })
@@ -58,6 +66,9 @@ export class ProjectDetails implements OnInit {
   readonly loadingInvite = signal<boolean>(false);
   readonly inviteHttpError = signal<string>('');
   readonly inviteeEmail = signal<string>('');
+  readonly updatedStatus = signal<ProjectStatus>('COMPLETED');
+  readonly loadingStatusUpdate = signal<boolean>(false);
+  readonly statusUpdateHttpError = signal<string>('');
   readonly addProjectMemberForm = form(
     this.addProjectMemberModel,
     (schemaPath) => {
@@ -141,6 +152,15 @@ export class ProjectDetails implements OnInit {
       });
   }
 
+  setProjectStatusAppearence(status: ProjectStatus): ProjectStatusAppearence {
+    switch (status) {
+      case 'ONGOING':
+        return { label: 'Ongoing', style: 'text-blue-500' };
+      case 'COMPLETED':
+        return { label: 'Completed', style: 'text-green-500' };
+    }
+  }
+
   setTaskStatusAppearence(status: TaskStatus): TaskStatusAppearence {
     switch (status) {
       case 'ONGOING':
@@ -190,5 +210,50 @@ export class ProjectDetails implements OnInit {
       }
     }
     return [];
+  }
+
+  getProjectStatusFromString(value: string) {
+    switch (value) {
+      case 'COMPLETED':
+        return 'COMPLETED';
+      case 'ONGOING':
+        return 'ONGOING';
+      default:
+        throw new Error('Invalid project status value');
+    }
+  }
+
+  onSelectStatus(event: Event) {
+    const select = event.currentTarget as HTMLSelectElement;
+    const value = select.value;
+
+    const updatedStatus: ProjectStatus = this.getProjectStatusFromString(value);
+
+    this.updatedStatus.set(updatedStatus);
+  }
+
+  onClickSaveStatus() {
+    this.loadingStatusUpdate.set(true);
+    this.statusUpdateHttpError.set('');
+
+    const request: UpdateProjectStatusRequest = {
+      status: this.updatedStatus(),
+    };
+
+    this.projectService
+      .updateProjectStatus(request, this.projectId)
+      .pipe(finalize(() => this.loadingStatusUpdate.set(false)))
+      .subscribe({
+        next: () =>
+          this.project.update((current) => {
+            if (!current) return current;
+
+            return {
+              ...current,
+              status: request.status,
+            };
+          }),
+        error: () => this.statusUpdateHttpError.set('Error while updating status'),
+      });
   }
 }

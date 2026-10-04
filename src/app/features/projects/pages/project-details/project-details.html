@@ -1,6 +1,15 @@
 <div class="w-200 mx-auto mt-20">
   @if (project(); as p) {
     <div class="grid gap-y-5">
+      @if (p.status !== 'ONGOING') {
+        <p class="bg-surface border border-gray-400/60 px-2 py-1 font-semibold rounded-md">
+          This project has been marked as
+          <span [class]="setProjectStatusAppearence(p.status).style">{{
+            setProjectStatusAppearence(p.status).label
+          }}</span>
+          and can no longer be modified
+        </p>
+      }
       <h2 class="text-3xl bg-primary text-primary-foreground p-2 rounded-sm">
         {{ p.name }}
       </h2>
@@ -10,13 +19,43 @@
       >
         {{ p.description || 'No Description' }}
       </p>
+      @if (currentUserRole() === 'ADMIN') {
+        <div class="flex items-center gap-x-2">
+          <div class="flex items-center gap-x-2">
+            <label for="update-status">Mark as:</label>
+            <select
+              id="update-status"
+              class="bg-surface px-2 py-1 rounded-md font-semibold border border-gray-400/60"
+              (change)="onSelectStatus($event)"
+            >
+              <option value="COMPLETED">Completed</option>
+              <option value="ONGOING">Ongoing</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-x-2">
+            <button
+              class="bg-surface text-primary p-1 rounded-md border border-gray-400/60 hover:bg-gray-200"
+              (click)="onClickSaveStatus()"
+            >
+              <svg lucideSave size="20"></svg>
+            </button>
+            @if (loadingStatusUpdate()) {
+              <app-spinner size="size-5" color="border-primary" />
+            }
+            @if (statusUpdateHttpError() !== '') {
+              <p class="text-sm text-red-500">{{ statusUpdateHttpError() }}</p>
+            }
+          </div>
+        </div>
+      }
     </div>
-    <div class="flex items-center bg-primary px-2 py-2 justify-between rounded-sm">
+    <div class="flex items-center bg-primary px-2 py-2 justify-between rounded-sm mt-3">
       <h3 class="text-xl text-primary-foreground">Tasks</h3>
       @if (currentUserRole() === 'ADMIN' || currentUserRole() === 'MANAGER') {
         <a
           class="bg-surface text-primary font-semibold px-2 py-1 rounded-md hover:bg-gray-200 transition-all"
-          routerLink="tasks/create"
+          [class]="p.status !== 'ONGOING' ? 'hover:cursor-not-allowed' : ''"
+          [routerLink]="p.status !== 'ONGOING' ? [] : ['tasks/create']"
           >+ Create Task</a
         >
       }
@@ -68,6 +107,7 @@
         <div class="relative">
           <button
             class="bg-surface text-primary font-semibold px-2 py-1 rounded-md hover:bg-gray-200 transition-all"
+            [disabled]="p.status !== 'ONGOING'"
             (click)="onClickAddMember()"
           >
             + Add Member

@@ -1,8 +1,25 @@
 <div class="w-200 mx-auto mt-20">
   @if (task(); as t) {
     <div class="grid">
+      @if (t.projectStatus !== 'ONGOING') {
+        <p class="bg-surface border border-gray-400/60 px-2 py-1 font-semibold rounded-md">
+          The project of this task has been marked as
+          <span [class]="setProjectStatusAppearence(t.projectStatus).style">{{
+            setProjectStatusAppearence(t.projectStatus).label
+          }}</span>
+          and can no longer be modified
+        </p>
+      } @else if (t.status !== 'ONGOING') {
+        <p class="bg-surface border border-gray-400/60 px-2 py-1 font-semibold rounded-md">
+          This task has been marked as
+          <span [class]="setTaskStatusAppearence(t.status).style">{{
+            setTaskStatusAppearence(t.status).label
+          }}</span>
+          and can no longer be modified
+        </p>
+      }
       <div
-        class="flex gap-x-10 items-center bg-surface border border-gray-400 rounded-sm px-2 py-1 justify-between"
+        class="flex gap-x-10 items-center bg-surface border border-gray-400 rounded-sm px-2 py-1 justify-between mt-2"
       >
         <h2 class="text-2xl font-semibold">{{ t.name }}</h2>
         <div class="flex gap-x-3 items-center">
@@ -23,15 +40,56 @@
         </p>
       }
       <p class="mt-5">{{ t.description }}</p>
-      <p class="text-xs font-light uppercase mt-5">
-        Last Updated: {{ t.updatedAt | date: 'shortDate' }}
-      </p>
-      <div class="flex items-center bg-primary px-2 py-2 justify-between rounded-sm mt-5">
+      <div class="mt-5 flex items-center justify-between">
+        <p class="text-xs font-light uppercase">
+          Last Updated: {{ t.updatedAt | date: 'shortDate' }}
+        </p>
+        @if (
+          t.projectStatus === 'ONGOING' &&
+          (t.taskOwner.user.id === getCurrentUser()?.id ||
+            t.projectAdminId === getCurrentUser()?.id)
+        ) {
+          <div class="flex items-center gap-x-2">
+            <div class="flex items-center gap-x-2">
+              <label for="update-status">Mark as:</label>
+              <select
+                id="update-status"
+                class="bg-surface px-2 py-1 rounded-md font-semibold border border-gray-400/60"
+                (change)="onSelectStatus($event)"
+              >
+                <option value="COMPLETED">Completed</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="ONGOING">Ongoing</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-x-2">
+              <button
+                type="button"
+                aria-label="Save task status"
+                class="bg-surface text-primary p-1 rounded-md border border-gray-400/60 hover:bg-gray-200"
+                [disabled]="t.projectStatus !== 'ONGOING'"
+                (click)="onClickSaveStatus()"
+              >
+                <svg lucideSave size="20"></svg>
+              </button>
+              @if (loadingStatusUpdate()) {
+                <app-spinner size="size-5" color="border-primary" />
+              }
+              @if (statusUpdateHttpError() !== '') {
+                <p class="text-sm text-red-500">{{ statusUpdateHttpError() }}</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="flex items-center bg-primary px-2 py-2 justify-between rounded-sm mt-3">
         <h3 class="text-xl text-primary-foreground">Task Members</h3>
         @if (this.authService.currentUser()?.id === this.task()?.taskOwner.user.id) {
           <div class="relative">
             <button
               class="bg-surface text-primary font-semibold px-2 py-1 rounded-md hover:bg-gray-200 transition-all"
+              [disabled]="t.projectStatus !== 'ONGOING' || t.status !== 'ONGOING'"
               (click)="onClickAssignMembersButton()"
             >
               + Assign Member
@@ -129,7 +187,7 @@
       <h3 class="text-xl text-primary-foreground">Comments</h3>
     </div>
     <div class="grid w-full">
-      @if (!isReadOnly()) {
+      @if (!isReadOnly() && t.projectStatus === 'ONGOING' && t.status === 'ONGOING') {
         <div class="flex justify-between items-center">
           <label for="new-comment" class="text-2xl mt-2">New Comment</label>
           <div class="flex gap-x-2">

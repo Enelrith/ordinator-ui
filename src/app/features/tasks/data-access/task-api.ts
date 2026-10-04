@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
-import { CreateTaskRequest, Task, TaskInfo } from './task.model';
+import { CreateTaskRequest, Task, TaskInfo, UpdateTaskStatusRequest } from './task.model';
 
 @Service()
 export class TaskApi {
@@ -20,5 +20,9 @@ export class TaskApi {
 
   addTaskMember(taskId: string, projectMemberId: string) {
     return this.http.post<void>(`/api/tasks/${taskId}/project-members/${projectMemberId}`, null);
+  }
+
+  updateTaskStatus(request: UpdateTaskStatusRequest, taskId: string) {
+    return this.http.patch<void>(`/api/tasks/${taskId}/status`, request);
   }
 }

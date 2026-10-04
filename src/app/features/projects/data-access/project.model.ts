@@ -33,3 +33,7 @@ export interface Project {
   status: ProjectStatus;
   projectMembers: ProjectMember[];
 }
+
+export interface UpdateProjectStatusRequest {
+  status: ProjectStatus;
+}

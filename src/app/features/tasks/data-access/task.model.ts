@@ -1,4 +1,4 @@
-import { ProjectMember } from '../../projects/data-access/project.model';
+import { ProjectMember, ProjectStatus } from '../../projects/data-access/project.model';
 
 export type TaskImportance = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type TaskStatus = 'COMPLETED' | 'ONGOING' | 'ON_HOLD' | 'CANCELLED';
@@ -7,6 +7,10 @@ export interface CreateTaskRequest {
   name: string;
   description: string;
   importance: TaskImportance;
+}
+
+export interface UpdateTaskStatusRequest {
+  status: TaskStatus;
 }
 
 export interface TaskInfo {
@@ -23,7 +27,9 @@ export interface Task {
   name: string;
   description: string;
   status: TaskStatus;
+  projectStatus: ProjectStatus;
   importance: TaskImportance;
   taskOwner: ProjectMember;
   taskMembers: ProjectMember[];
+  projectAdminId: string;
 }

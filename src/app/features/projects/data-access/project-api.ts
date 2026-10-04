@@ -6,6 +6,7 @@ import {
   Project,
   ProjectInfo,
   ProjectMember,
+  UpdateProjectStatusRequest,
 } from './project.model';
 
 @Service()
@@ -33,5 +34,9 @@ export class ProjectApi {
 
   getAllProjectMembers(projectId: string) {
     return this.http.get<ProjectMember[]>(`/api/projects/${projectId}/project-members`);
+  }
+
+  updateProjectStatus(request: UpdateProjectStatusRequest, projectId: string) {
+    return this.http.patch<void>(`/api/projects/${projectId}/status`, request);
   }
 }

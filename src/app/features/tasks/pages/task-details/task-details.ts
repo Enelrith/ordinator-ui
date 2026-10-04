@@ -1,18 +1,28 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { TaskApi } from '../../data-access/task-api';
 import { ActivatedRoute } from '@angular/router';
-import { Task, TaskImportance, TaskStatus } from '../../data-access/task.model';
+import {
+  Task,
+  TaskImportance,
+  TaskStatus,
+  UpdateTaskStatusRequest,
+} from '../../data-access/task.model';
 import { catchError, concatMap, EMPTY, finalize, map, of, switchMap, tap } from 'rxjs';
 import { AuthApi } from '../../../security/data-access/auth-api';
 import { DatePipe } from '@angular/common';
-import { ProjectMember } from '../../../projects/data-access/project.model';
+import { ProjectMember, ProjectStatus } from '../../../projects/data-access/project.model';
 import { ProjectApi } from '../../../projects/data-access/project-api';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Spinner } from '../../../../common/ui/spinner/spinner';
 import { CommentApi } from '../../data-access/comment-api';
 import { Page } from '../../../../common/data-access/page.model';
 import { Comment } from '../../data-access/comment.model';
-import { LucidePaperclip } from '@lucide/angular';
+import { LucidePaperclip, LucideSave } from '@lucide/angular';
+
+interface ProjectStatusAppearence {
+  label: string;
+  style: string;
+}
 
 interface TaskStatusAppearence {
   label: string;
@@ -25,7 +35,7 @@ interface TaskImportanceAppearence {
 }
 
 @Component({
-  imports: [DatePipe, Spinner, LucidePaperclip],
+  imports: [DatePipe, Spinner, LucidePaperclip, LucideSave],
   selector: 'app-task-details',
   templateUrl: './task-details.html',
 })
@@ -65,6 +75,9 @@ export class TaskDetails implements OnInit {
   readonly newCommentAttachment = signal<File | null>(null);
   readonly loadingNewComment = signal<boolean>(false);
   readonly newCommentHttpError = signal<string>('');
+  readonly updatedStatus = signal<TaskStatus>('COMPLETED');
+  readonly loadingStatusUpdate = signal<boolean>(false);
+  readonly statusUpdateHttpError = signal<string>('');
 
   ngOnInit(): void {
     this.loading.set(true);
@@ -101,6 +114,15 @@ export class TaskDetails implements OnInit {
         },
         error: () => this.commentsHttpError.set('Error while loading comments'),
       });
+  }
+
+  setProjectStatusAppearence(status: ProjectStatus): ProjectStatusAppearence {
+    switch (status) {
+      case 'ONGOING':
+        return { label: 'Ongoing', style: 'text-blue-500' };
+      case 'COMPLETED':
+        return { label: 'Completed', style: 'text-green-500' };
+    }
   }
 
   setTaskStatusAppearence(status: TaskStatus): TaskStatusAppearence {
@@ -304,5 +326,60 @@ export class TaskDetails implements OnInit {
         next: (commentsPage) => this.commentsPage.set(commentsPage),
         error: () => this.commentsHttpError.set('Error while loading comments'),
       });
+  }
+
+  getTaskStatusFromString(value: string) {
+    switch (value) {
+      case 'COMPLETED':
+        return 'COMPLETED';
+      case 'ON_HOLD':
+        return 'ON_HOLD';
+      case 'CANCELLED':
+        return 'CANCELLED';
+      case 'ONGOING':
+        return 'ONGOING';
+      default:
+        throw new Error('Invalid task status value');
+    }
+  }
+
+  onSelectStatus(event: Event) {
+    const select = event.currentTarget as HTMLSelectElement;
+    const value = select.value;
+
+    const updatedStatus: TaskStatus = this.getTaskStatusFromString(value);
+
+    this.updatedStatus.set(updatedStatus);
+  }
+
+  onClickSaveStatus() {
+    if (this.task()?.projectStatus !== 'ONGOING') return;
+
+    this.loadingStatusUpdate.set(true);
+    this.statusUpdateHttpError.set('');
+
+    const request: UpdateTaskStatusRequest = {
+      status: this.updatedStatus(),
+    };
+
+    this.taskService
+      .updateTaskStatus(request, this.taskId)
+      .pipe(finalize(() => this.loadingStatusUpdate.set(false)))
+      .subscribe({
+        next: () =>
+          this.task.update((current) => {
+            if (!current) return current;
+
+            return {
+              ...current,
+              status: request.status,
+            };
+          }),
+        error: () => this.statusUpdateHttpError.set('Error while updating status'),
+      });
+  }
+
+  getCurrentUser() {
+    return this.authService.currentUser();
   }
 }
