@@ -1,8 +1,17 @@
 # Ordinator Frontend
 
-The Angular client for Ordinator, a project and task management application. It provides account registration and login, project browsing and creation, project membership management, task creation and details, task member assignment, and paginated task comments with optional file attachments.
+The Angular client for Ordinator, a project and task management application. It provides account registration and login, project browsing and creation, project membership management, task creation and details, task member assignment, project and task status editing, and paginated task comments with optional file attachments.
 
 The Spring Boot API lives in the separate `ordinator` project. See its [README](https://github.com/Enelrith/ordinator) for backend and database setup.
+
+## Features
+
+- Registration, login, logout, and current-user state
+- Project summaries, member lists, and task summaries
+- Adding existing users to projects with roles and assigning project members to tasks
+- Project and task status controls with loading indicators and error messages
+- Status safeguards that restrict member additions, task creation, assignments, and comment posting
+- Paginated task comments, optional file uploads, and authenticated attachment downloads
 
 ## Stack
 
@@ -52,25 +61,44 @@ The development proxy applies to `pnpm start`.
 
 ## Pages
 
-| Route                                | Page                                             |
-| ------------------------------------ | ------------------------------------------------ |
-| `/`                                  | Home                                             |
-| `/create-account`                    | Account registration                             |
-| `/login`                             | Login                                            |
-| `/projects`                          | Project list                                     |
-| `/projects/create`                   | Create a project                                 |
-| `/projects/:id`                      | Project details, members, and task summaries     |
-| `/projects/:projectId/tasks/create`  | Create a task                                    |
-| `/projects/:projectId/tasks/:taskId` | Task details, members, comments, and attachments |
+| Route                                | Page                                                     |
+| ------------------------------------ | -------------------------------------------------------- |
+| `/`                                  | Home                                                     |
+| `/create-account`                    | Account registration                                     |
+| `/login`                             | Login                                                    |
+| `/projects`                          | Project list                                             |
+| `/projects/create`                   | Create a project                                         |
+| `/projects/:id`                      | Project details, status, members, and task summaries     |
+| `/projects/:projectId/tasks/create`  | Create a task                                            |
+| `/projects/:projectId/tasks/:taskId` | Task details, status, members, comments, and attachments |
 
 Project member additions use the invitee's existing account email. Task assignments select an existing member of the same project. Available operations depend on the user's project role and task ownership; the backend enforces those permissions.
+
+## Status editing and permissions
+
+The project details page lets the project admin select `COMPLETED` or `ONGOING` and save the change. The task details page lets the task owner or project admin select `COMPLETED`, `ON_HOLD`, `CANCELLED`, or `ONGOING` while the parent project is ongoing. Successful saves update the displayed status; failed requests show an error message.
+
+| Action                | Availability                                                             |
+| --------------------- | ------------------------------------------------------------------------ |
+| Change project status | Project admin, including reopening a completed project                   |
+| Add project members   | Admins and managers in an ongoing project, subject to role restrictions  |
+| Create tasks          | Admins and managers in an ongoing project                                |
+| Change task status    | Task owner or project admin while the project is ongoing                 |
+| Assign task members   | Task owner while both the project and task are ongoing                   |
+| Post comments         | Assigned task members while both the project and task are ongoing        |
+| Read task comments    | Project members, including after the project or task stops being ongoing |
+| Download attachments  | Assigned task members, including after status changes                    |
+
+The task status editor is hidden when its project is not ongoing. The pages display a status notice when a project or task is no longer ongoing, and member assignment and comment posting are restricted accordingly. Status editing allows an authorized user to reopen a project or task under the rules above. Reopening a project does not reset its task statuses.
+
+These controls call `PATCH /api/projects/{projectId}/status` and `PATCH /api/tasks/{taskId}/status` with a JSON body containing `status`. The backend enforces the same business rules independently of the UI.
 
 ## Comments and attachments
 
 Comments are displayed on the task details page, with the newest first and 10 comments per page by default. The page shows each comment's author, creation time, content, and optional attachment filename. Comments whose author is no longer available display `[DELETED USER]`.
 
 - Project members can read comments on tasks in their project.
-- Members assigned to the task can post comments and download attachments. Other project members see the comments and attachment filenames without the posting form or download links.
+- Members assigned to the task can post comments when both the task and project are ongoing, and download existing attachments regardless of status. Other project members see the comments and attachment filenames without the posting form or download links.
 - Comments accept up to 300 characters of nonblank text and one optional file. The backend validates the content and filename.
 - Posting from a later page returns to the first page so the new comment is visible. Posting from the first page inserts the new comment at the top.
 - A successful post clears the comment text and file selection.
@@ -79,7 +107,7 @@ Uploads use `FormData`: `commentRequest` is a JSON `Blob` with content type `app
 
 Attachment links point to `/api/comments/{commentId}/attachment`. The browser uses the authenticated session to download the file through the backend, which supplies the original filename with `Content-Disposition: attachment`. The frontend does not connect directly to S3 or need S3 credentials.
 
-The local backend stores attachment bytes in LocalStack. Its current configuration enables persistence, so restarting LocalStack retains existing buckets and files.
+The local backend stores attachment bytes in LocalStack. Its Compose configuration enables persistence in a named Docker volume. Keep that volume when restarting the local services to retain buckets and files.
 
 ## Commands
 
@@ -118,4 +146,4 @@ angular.json          Build, development server, and test configuration
 pnpm-lock.yaml        Dependency lockfile
 ```
 
-Feature folders separate `pages` from `data-access`. Component and API unit tests are stored alongside their source files as `*.spec.ts`.
+Feature folders separate `pages` from `data-access`. Component and API unit tests are stored alongside their source files as `*.spec.ts`. The backend repository contains the integration tests for database operations, permissions, multipart uploads, pagination, and stored attachment contents.
